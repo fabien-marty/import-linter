@@ -61,16 +61,12 @@ class DotGraph:
         return "\n".join(lines) + "\n"
 
     def _render_with_clusters(self, indent: str) -> list[str]:
-        """Render nodes with subgraph clusters (when 2+ siblings share a parent)."""
+        """Render nodes with subgraph clusters (grouping nodes by immediate parent)."""
         parent_to_children: dict[str, set[str]] = defaultdict(set)
         for node in self.nodes:
             parent = node.rsplit(".", 1)[0]
             parent_to_children[parent].add(node)
-        clustered_parents = {
-            p: c
-            for p, c in parent_to_children.items()
-            if len(c) >= 2 or (len(c) >= 1 and p in self.nodes)
-        }
+        clustered_parents = {p: c for p, c in parent_to_children.items() if len(c) >= 1}
         standalone_nodes = {
             node
             for parent, children in parent_to_children.items()
