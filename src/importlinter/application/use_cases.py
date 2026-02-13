@@ -453,20 +453,35 @@ def _build_dot_edge(
     cycle_breakers: set[tuple[str, str]] | None,
     depth: int = 1,
 ) -> Edge | None:
-    # For depth > 1, we can't use as_packages=True because modules may share
-    # descendants (e.g., foo.blue and foo.blue.alpha are both in our set).
-    # In that case, only check for direct imports between exact modules.
     if depth > 1:
-        import_exists = grimp_graph.direct_import_exists(
+        # Skip pairs where one is an ancestor of the other in the module hierarchy,
+        # since as_packages=True would give false positives for internal subtree imports.
+        if upstream.startswith(downstream + ".") or downstream.startswith(upstream + "."):
+            return None
+
+        # For depth > 1, we can't use as_packages=True for solid edges because modules
+        # may share descendants (e.g., foo.blue and foo.blue.alpha are both in our set).
+        # Check for a direct (exact) import first.
+        direct_exists = grimp_graph.direct_import_exists(
             importer=downstream, imported=upstream, as_packages=False
         )
+        if not direct_exists:
+            # No direct import — check for a package-level import (a descendant of
+            # downstream imports upstream or one of its descendants).  Show as a
+            # dotted edge so the user can see the indirect relationship.
+            package_exists = grimp_graph.direct_import_exists(
+                importer=downstream, imported=upstream, as_packages=True
+            )
+            if not package_exists:
+                return None
+            return Edge(source=downstream, destination=upstream, indirect=True)
     else:
-        import_exists = grimp_graph.direct_import_exists(
+        if not grimp_graph.direct_import_exists(
             importer=downstream, imported=upstream, as_packages=True
-        )
-    if not import_exists:
-        return None
+        ):
+            return None
 
+    # Build a normal (solid) edge.
     if show_import_totals:
         number_of_imports = _count_imports_between_packages(
             grimp_graph, importer=downstream, imported=upstream

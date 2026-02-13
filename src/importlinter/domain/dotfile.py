@@ -7,6 +7,7 @@ class Edge:
     destination: str
     label: str = ""
     emphasized: bool = False
+    indirect: bool = False
 
     def __str__(self) -> str:
         return self.render(base_module="")
@@ -20,6 +21,8 @@ class Edge:
             attrs["label"] = self.label
         if self.emphasized:
             attrs["style"] = "dashed"
+        elif self.indirect:
+            attrs["style"] = "dotted"
         if attrs:
             joined_attrs = ", ".join([f'{key}="{value}"' for key, value in attrs.items()])
             return f" [{joined_attrs}]"

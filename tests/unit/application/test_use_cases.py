@@ -865,7 +865,51 @@ class TestBuildDotGraph:
             "mypackage.foo.green.gamma",
         }
         assert dot.edges == {
+            # Solid edges for direct imports between exact modules.
             Edge("mypackage.foo.blue", "mypackage.foo.green"),
             Edge("mypackage.foo.blue.alpha", "mypackage.foo.green.gamma"),
             Edge("mypackage.foo.blue.beta", "mypackage.foo.green.gamma"),
+            # Dotted edges: package-level imports where a descendant of the source
+            # imports a descendant of the destination.
+            Edge("mypackage.foo.blue", "mypackage.foo.green.gamma", indirect=True),
+            Edge("mypackage.foo.blue.alpha", "mypackage.foo.green", indirect=True),
+            Edge("mypackage.foo.blue.beta", "mypackage.foo.green", indirect=True),
+        }
+
+    def test_depth_2_indirect_edges_for_deeper_imports(self):
+        """When an import goes from depth-1 to depth-3, the depth-2 node in between
+        gets a dotted edge so it doesn't appear as an orphan."""
+        graph = ImportGraph()
+        graph.add_module(SOME_ROOT_PACKAGE)
+        graph.add_module(SOME_MODULE)
+
+        for child in ("blue", "green"):
+            graph.add_module(f"{SOME_MODULE}.{child}")
+        graph.add_module(f"{SOME_MODULE}.green.gamma")
+
+        # Import from depth-1 module to a depth-3 module (below green.gamma).
+        graph.add_import(
+            importer=f"{SOME_MODULE}.blue",
+            imported=f"{SOME_MODULE}.green.gamma.delta",
+        )
+
+        dot = build_dot_graph(
+            graph,
+            SOME_MODULE,
+            show_import_totals=False,
+            show_cycle_breakers=False,
+            depth=2,
+        )
+
+        assert dot.nodes == {
+            "mypackage.foo.blue",
+            "mypackage.foo.green",
+            "mypackage.foo.green.gamma",
+        }
+        # blue has no direct import to green.gamma — the import targets
+        # green.gamma.delta (depth 3).  A dotted edge connects them.
+        # blue also has an indirect package-level import to green (via green.gamma.delta).
+        assert dot.edges == {
+            Edge("mypackage.foo.blue", "mypackage.foo.green.gamma", indirect=True),
+            Edge("mypackage.foo.blue", "mypackage.foo.green", indirect=True),
         }
