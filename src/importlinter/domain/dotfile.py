@@ -54,18 +54,14 @@ class DotGraph:
         lines = ["digraph {", f"{indent}node [fontname=helvetica]"]
         if self.concentrate:
             lines.append(f"{indent}concentrate=true")
-        if self.depth > 1:
-            lines.extend(self._render_with_clusters(indent))
-        else:
-            for node in sorted(self.nodes):
-                lines.append(f'{indent}"{self.render_module(node, self.title)}"')
+        lines.extend(self._render_with_clusters(indent))
         for edge in sorted(self.edges):
             lines.append(f"{indent}{edge.render(self.title)}")
         lines.append("}")
         return "\n".join(lines) + "\n"
 
     def _render_with_clusters(self, indent: str) -> list[str]:
-        """Render nodes with subgraph clusters when depth > 1."""
+        """Render nodes with subgraph clusters (when 2+ siblings share a parent)."""
         parent_to_children: dict[str, set[str]] = defaultdict(set)
         for node in self.nodes:
             parent = node.rsplit(".", 1)[0]
@@ -78,13 +74,25 @@ class DotGraph:
             for node in children
         }
         lines: list[str] = []
-        self._render_cluster(
-            self.title,
-            indent,
-            indent,
-            clustered_parents,
-            lines,
-        )
+        # Render clusters: start from base, or from root-level clusters when base has none
+        if self.title in clustered_parents:
+            self._render_cluster(
+                self.title,
+                indent,
+                indent,
+                clustered_parents,
+                lines,
+            )
+        else:
+            for child in sorted(parent_to_children.get(self.title, set())):
+                if child in clustered_parents:
+                    self._render_cluster(
+                        child,
+                        indent,
+                        indent,
+                        clustered_parents,
+                        lines,
+                    )
         for node in sorted(standalone_nodes):
             lines.append(f'{indent}"{self.render_module(node, self.title)}"')
         return lines
@@ -106,6 +114,9 @@ class DotGraph:
         lines.append(f"{current_indent}subgraph {cluster_id} {{")
         lines.append(f'{current_indent}{indent}label="{label}"')
         nested_indent = current_indent + indent
+        # Include the parent node in the box when it exists in the graph
+        if parent in self.nodes:
+            lines.append(f'{nested_indent}"{self.render_module(parent, self.title)}"')
         for node in sorted(children):
             if node in clustered_parents:
                 lines.append(f'{nested_indent}"{self.render_module(node, self.title)}"')

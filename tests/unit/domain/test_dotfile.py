@@ -1,4 +1,3 @@
-from textwrap import dedent
 from importlinter.domain.dotfile import DotGraph, Edge
 
 
@@ -22,15 +21,11 @@ class TestDotGraph:
 
         rendered = dot.render()
 
-        assert rendered == dedent("""\
-            digraph {
-                node [fontname=helvetica]
-                concentrate=true
-                ".bar"
-                ".baz"
-                ".bar" ->  ".baz"
-            }
-        """)
+        # .bar and .baz share parent -> cluster (depth=1, clustering applies)
+        assert "subgraph cluster_mypackage_foo" in rendered
+        assert '".bar"' in rendered
+        assert '".baz"' in rendered
+        assert ".bar" in rendered and ".baz" in rendered
 
     def test_render_with_depth_2(self):
         dot = DotGraph(title="mypackage.foo", depth=2)
@@ -72,6 +67,29 @@ class TestDotGraph:
         assert '".green"' in rendered
         assert '".blue.alpha"' in rendered
         assert '".blue.beta"' in rendered
+
+    def test_parent_node_in_cluster_with_children(self):
+        """Parent node .foo is included in the box with .foo.bar and .foo.baz."""
+        dot = DotGraph(title="mypackage", depth=2)
+        dot.add_node("mypackage.foo")
+        dot.add_node("mypackage.foo.bar")
+        dot.add_node("mypackage.foo.baz")
+        dot.add_edge(Edge(source="mypackage.foo.bar", destination="mypackage.foo.baz"))
+
+        rendered = dot.render()
+
+        # Cluster contains .foo (parent) and its children .foo.bar, .foo.baz
+        assert "subgraph cluster_mypackage_foo" in rendered
+        assert '".foo"' in rendered
+        assert '".foo.bar"' in rendered
+        assert '".foo.baz"' in rendered
+        # All three must be inside the same cluster (between subgraph and closing })
+        cluster_start = rendered.find("subgraph cluster_mypackage_foo")
+        cluster_end = rendered.find("}", cluster_start)
+        cluster_content = rendered[cluster_start:cluster_end]
+        assert '".foo"' in cluster_content
+        assert '".foo.bar"' in cluster_content
+        assert '".foo.baz"' in cluster_content
 
 
 class TestRenderModule:
