@@ -35,8 +35,8 @@ class TestDotGraph:
 
         rendered = dot.render()
 
-        # No root box; .blue, .green, .blue.alpha at top level
-        assert "subgraph cluster_mypackage_foo" not in rendered
+        # No root box; .blue has box (parent+child); .green, .blue.alpha at top level
+        assert "subgraph cluster_mypackage_foo {" not in rendered  # no root box
         assert '".blue"' in rendered
         assert '".green"' in rendered
         assert '".blue.alpha"' in rendered
@@ -64,6 +64,18 @@ class TestDotGraph:
         assert '".green"' in rendered
         assert '".blue.alpha"' in rendered
         assert '".blue.beta"' in rendered
+
+    def test_parent_with_single_child_gets_box(self):
+        """Parent .foo and its single child .foo.bar get a box (2 nodes: parent + child)."""
+        dot = DotGraph(title="mypackage", depth=2)
+        dot.add_node("mypackage.foo")
+        dot.add_node("mypackage.foo.bar")
+
+        rendered = dot.render()
+
+        assert "subgraph cluster_mypackage_foo " in rendered
+        assert '".foo"' in rendered
+        assert '".foo.bar"' in rendered
 
     def test_parent_node_in_cluster_with_children(self):
         """Parent node .foo is included in the box with .foo.bar and .foo.baz."""

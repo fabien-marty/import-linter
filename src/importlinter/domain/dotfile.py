@@ -66,7 +66,11 @@ class DotGraph:
         for node in self.nodes:
             parent = node.rsplit(".", 1)[0]
             parent_to_children[parent].add(node)
-        clustered_parents = {p: c for p, c in parent_to_children.items() if len(c) >= 2}
+        clustered_parents = {
+            p: c
+            for p, c in parent_to_children.items()
+            if len(c) >= 2 or (len(c) >= 1 and p in self.nodes)
+        }
         standalone_nodes = {
             node
             for parent, children in parent_to_children.items()
