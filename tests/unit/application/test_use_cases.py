@@ -869,3 +869,8 @@ class TestBuildDotGraph:
             Edge("mypackage.foo.blue.alpha", "mypackage.foo.green.gamma"),
             Edge("mypackage.foo.blue.beta", "mypackage.foo.green.gamma"),
         }
+        # depth=2 renders clusters for sibling groups (2+ nodes with same parent)
+        rendered = dot.render()
+        assert "subgraph cluster_mypackage_foo" in rendered
+        assert "subgraph cluster_mypackage_foo_blue" in rendered
+        assert '".green.gamma"' in rendered  # standalone (single sibling under .green)

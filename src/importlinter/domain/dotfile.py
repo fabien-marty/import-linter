@@ -1,3 +1,4 @@
+from collections import defaultdict
 from dataclasses import dataclass, field
 
 
@@ -53,12 +54,71 @@ class DotGraph:
         lines = ["digraph {", f"{indent}node [fontname=helvetica]"]
         if self.concentrate:
             lines.append(f"{indent}concentrate=true")
-        for node in sorted(self.nodes):
-            lines.append(f'{indent}"{self.render_module(node, self.title)}"')
+        if self.depth > 1:
+            lines.extend(self._render_with_clusters(indent))
+        else:
+            for node in sorted(self.nodes):
+                lines.append(f'{indent}"{self.render_module(node, self.title)}"')
         for edge in sorted(self.edges):
             lines.append(f"{indent}{edge.render(self.title)}")
         lines.append("}")
         return "\n".join(lines) + "\n"
+
+    def _render_with_clusters(self, indent: str) -> list[str]:
+        """Render nodes with subgraph clusters when depth > 1."""
+        parent_to_children: dict[str, set[str]] = defaultdict(set)
+        for node in self.nodes:
+            parent = node.rsplit(".", 1)[0]
+            parent_to_children[parent].add(node)
+        clustered_parents = {p: c for p, c in parent_to_children.items() if len(c) >= 2}
+        standalone_nodes = {
+            node
+            for parent, children in parent_to_children.items()
+            if parent not in clustered_parents
+            for node in children
+        }
+        lines: list[str] = []
+        self._render_cluster(
+            self.title,
+            indent,
+            indent,
+            clustered_parents,
+            lines,
+        )
+        for node in sorted(standalone_nodes):
+            lines.append(f'{indent}"{self.render_module(node, self.title)}"')
+        return lines
+
+    def _render_cluster(
+        self,
+        parent: str,
+        indent: str,
+        current_indent: str,
+        clustered_parents: dict[str, set[str]],
+        lines: list[str],
+    ) -> None:
+        """Recursively render a cluster for parent and its nested clusters."""
+        if parent not in clustered_parents:
+            return
+        children = clustered_parents[parent]
+        cluster_id = "cluster_" + parent.replace(".", "_")
+        label = self.render_module(parent, self.title) if parent != self.title else ""
+        lines.append(f"{current_indent}subgraph {cluster_id} {{")
+        lines.append(f'{current_indent}{indent}label="{label}"')
+        nested_indent = current_indent + indent
+        for node in sorted(children):
+            if node in clustered_parents:
+                lines.append(f'{nested_indent}"{self.render_module(node, self.title)}"')
+                self._render_cluster(
+                    node,
+                    indent,
+                    nested_indent,
+                    clustered_parents,
+                    lines,
+                )
+            else:
+                lines.append(f'{nested_indent}"{self.render_module(node, self.title)}"')
+        lines.append(f"{current_indent}}}")
 
     @staticmethod
     def render_module(module: str, base_module: str = "") -> str:

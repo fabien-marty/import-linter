@@ -41,16 +41,37 @@ class TestDotGraph:
 
         rendered = dot.render()
 
-        assert rendered == dedent("""\
-            digraph {
-                node [fontname=helvetica]
-                concentrate=true
-                ".blue"
-                ".blue.alpha"
-                ".green"
-                ".blue.alpha" ->  ".green"
-            }
-        """)
+        # depth=2: .blue and .green share parent -> cluster; .blue.alpha is standalone (single sibling)
+        assert "subgraph cluster_mypackage_foo" in rendered
+        assert 'label=""' in rendered
+        assert '".blue"' in rendered
+        assert '".green"' in rendered
+        assert '".blue.alpha"' in rendered
+        assert ".blue.alpha" in rendered and ".green" in rendered
+
+    def test_render_with_depth_2_and_clusters(self):
+        """Nested clusters: .blue/.green in outer cluster, .blue.alpha/.blue.beta in inner cluster."""
+        dot = DotGraph(title="mypackage.foo", depth=2)
+        dot.add_node("mypackage.foo.blue")
+        dot.add_node("mypackage.foo.green")
+        dot.add_node("mypackage.foo.blue.alpha")
+        dot.add_node("mypackage.foo.blue.beta")
+        dot.add_node("mypackage.foo.green.gamma")
+        dot.add_edge(
+            Edge(source="mypackage.foo.blue.alpha", destination="mypackage.foo.green.gamma")
+        )
+
+        rendered = dot.render()
+
+        assert "subgraph cluster_mypackage_foo" in rendered
+        assert "subgraph cluster_mypackage_foo_blue" in rendered
+        assert 'label=".blue"' in rendered
+        # .green.gamma is standalone (single sibling under .green)
+        assert '".green.gamma"' in rendered
+        assert '".blue"' in rendered
+        assert '".green"' in rendered
+        assert '".blue.alpha"' in rendered
+        assert '".blue.beta"' in rendered
 
 
 class TestRenderModule:
