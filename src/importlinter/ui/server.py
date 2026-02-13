@@ -104,6 +104,7 @@ def create_app(
         show_import_totals: bool = False,
         show_cycle_breakers: bool = False,
         depth: int = 1,
+        show_indirect: bool = False,
     ) -> GraphResponse | ErrorResponse:
         try:
             graph_data = generate_dot(
@@ -112,6 +113,7 @@ def create_app(
                 show_import_totals,
                 show_cycle_breakers,
                 depth=depth,
+                show_indirect=show_indirect,
             )
             return cast(GraphResponse, dataclasses.asdict(graph_data))
         except Exception as e:

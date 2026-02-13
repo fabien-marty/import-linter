@@ -112,8 +112,17 @@ def explore(module_name: str) -> None:
     default=1,
     help="Depth of submodules to include in the graph (default: 1 for direct children).",
 )
+@click.option(
+    "--show-indirect",
+    is_flag=True,
+    help="When depth > 1, also show indirect (package-level) imports between modules.",
+)
 def drawgraph(
-    module_name: str, show_import_totals: bool, show_cycle_breakers: bool, depth: int
+    module_name: str,
+    show_import_totals: bool,
+    show_cycle_breakers: bool,
+    depth: int,
+    show_indirect: bool,
 ) -> None:
     """Output a DOT format graph of a module's dependencies to stdout.
 
@@ -136,7 +145,12 @@ def drawgraph(
 
     grimp_graph = grimp.build_graph(top_level_package)
     dot = use_cases.build_dot_graph(
-        grimp_graph, module_name, show_import_totals, show_cycle_breakers, depth=depth
+        grimp_graph,
+        module_name,
+        show_import_totals,
+        show_cycle_breakers,
+        depth=depth,
+        show_indirect=show_indirect,
     )
     click.echo(dot.render(), nl=False)
 

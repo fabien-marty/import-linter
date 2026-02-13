@@ -864,21 +864,61 @@ class TestBuildDotGraph:
             "mypackage.foo.blue.beta",
             "mypackage.foo.green.gamma",
         }
+        # Only direct (exact) imports shown — indirect edges require show_indirect=True.
         assert dot.edges == {
-            # Solid edges for direct imports between exact modules.
             Edge("mypackage.foo.blue", "mypackage.foo.green"),
             Edge("mypackage.foo.blue.alpha", "mypackage.foo.green.gamma"),
             Edge("mypackage.foo.blue.beta", "mypackage.foo.green.gamma"),
-            # Dotted edges: package-level imports where a descendant of the source
-            # imports a descendant of the destination.
-            Edge("mypackage.foo.blue", "mypackage.foo.green.gamma", indirect=True),
-            Edge("mypackage.foo.blue.alpha", "mypackage.foo.green", indirect=True),
-            Edge("mypackage.foo.blue.beta", "mypackage.foo.green", indirect=True),
+        }
+
+    def test_depth_2_with_show_indirect(self):
+        """When show_indirect is enabled, package-level imports also appear as edges."""
+        graph = ImportGraph()
+        graph.add_module(SOME_ROOT_PACKAGE)
+        graph.add_module(SOME_MODULE)
+
+        for child in ("blue", "green"):
+            graph.add_module(f"{SOME_MODULE}.{child}")
+        for grandchild in ("alpha", "beta"):
+            graph.add_module(f"{SOME_MODULE}.blue.{grandchild}")
+        graph.add_module(f"{SOME_MODULE}.green.gamma")
+
+        graph.add_import(
+            importer=f"{SOME_MODULE}.blue.alpha",
+            imported=f"{SOME_MODULE}.green.gamma",
+        )
+        graph.add_import(
+            importer=f"{SOME_MODULE}.blue.beta",
+            imported=f"{SOME_MODULE}.green.gamma",
+        )
+        graph.add_import(
+            importer=f"{SOME_MODULE}.blue",
+            imported=f"{SOME_MODULE}.green",
+        )
+
+        dot = build_dot_graph(
+            graph,
+            SOME_MODULE,
+            show_import_totals=False,
+            show_cycle_breakers=False,
+            depth=2,
+            show_indirect=True,
+        )
+
+        assert dot.edges == {
+            # Direct imports between exact modules.
+            Edge("mypackage.foo.blue", "mypackage.foo.green"),
+            Edge("mypackage.foo.blue.alpha", "mypackage.foo.green.gamma"),
+            Edge("mypackage.foo.blue.beta", "mypackage.foo.green.gamma"),
+            # Indirect (package-level) imports.
+            Edge("mypackage.foo.blue", "mypackage.foo.green.gamma"),
+            Edge("mypackage.foo.blue.alpha", "mypackage.foo.green"),
+            Edge("mypackage.foo.blue.beta", "mypackage.foo.green"),
         }
 
     def test_depth_2_indirect_edges_for_deeper_imports(self):
         """When an import goes from depth-1 to depth-3, the depth-2 node in between
-        gets a dotted edge so it doesn't appear as an orphan."""
+        gets an edge when show_indirect is enabled."""
         graph = ImportGraph()
         graph.add_module(SOME_ROOT_PACKAGE)
         graph.add_module(SOME_MODULE)
@@ -899,6 +939,7 @@ class TestBuildDotGraph:
             show_import_totals=False,
             show_cycle_breakers=False,
             depth=2,
+            show_indirect=True,
         )
 
         assert dot.nodes == {
@@ -907,9 +948,40 @@ class TestBuildDotGraph:
             "mypackage.foo.green.gamma",
         }
         # blue has no direct import to green.gamma — the import targets
-        # green.gamma.delta (depth 3).  A dotted edge connects them.
-        # blue also has an indirect package-level import to green (via green.gamma.delta).
+        # green.gamma.delta (depth 3).  Indirect edges connect them.
         assert dot.edges == {
-            Edge("mypackage.foo.blue", "mypackage.foo.green.gamma", indirect=True),
-            Edge("mypackage.foo.blue", "mypackage.foo.green", indirect=True),
+            Edge("mypackage.foo.blue", "mypackage.foo.green.gamma"),
+            Edge("mypackage.foo.blue", "mypackage.foo.green"),
         }
+
+    def test_depth_2_no_indirect_edges_without_flag(self):
+        """Without show_indirect, depth-2 nodes with only deeper imports have no edges."""
+        graph = ImportGraph()
+        graph.add_module(SOME_ROOT_PACKAGE)
+        graph.add_module(SOME_MODULE)
+
+        for child in ("blue", "green"):
+            graph.add_module(f"{SOME_MODULE}.{child}")
+        graph.add_module(f"{SOME_MODULE}.green.gamma")
+
+        graph.add_import(
+            importer=f"{SOME_MODULE}.blue",
+            imported=f"{SOME_MODULE}.green.gamma.delta",
+        )
+
+        dot = build_dot_graph(
+            graph,
+            SOME_MODULE,
+            show_import_totals=False,
+            show_cycle_breakers=False,
+            depth=2,
+            show_indirect=False,
+        )
+
+        assert dot.nodes == {
+            "mypackage.foo.blue",
+            "mypackage.foo.green",
+            "mypackage.foo.green.gamma",
+        }
+        # No indirect edges — only exact imports shown.
+        assert dot.edges == set()

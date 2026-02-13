@@ -78,11 +78,11 @@ class TestEdge:
         rendered = edge.render("mypackage.foo")
         assert rendered == '".blue.alpha" ->  ".green"'
 
-    def test_render_indirect_edge(self):
+    def test_render_emphasized_edge(self):
         edge = Edge(
             source="mypackage.foo.blue",
             destination="mypackage.foo.green.gamma",
-            indirect=True,
+            emphasized=True,
         )
         rendered = edge.render("mypackage.foo")
-        assert rendered == '".blue" ->  ".green.gamma" [style="dotted"]'
+        assert rendered == '".blue" ->  ".green.gamma" [style="dashed"]'

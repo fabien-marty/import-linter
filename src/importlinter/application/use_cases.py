@@ -149,6 +149,7 @@ def build_dot_graph(
     show_import_totals: bool,
     show_cycle_breakers: bool,
     depth: int = 1,
+    show_indirect: bool = False,
 ) -> DotGraph:
     """
     Build a DotGraph visualizing the architecture of the supplied module.
@@ -162,6 +163,7 @@ def build_dot_graph(
         show_cycle_breakers: whether to emphasize cycle-breaker edges.
             See https://grimp.readthedocs.io/en/stable/usage.html#ImportGraph.nominate_cycle_breakers
         depth: the depth of submodules to include in the graph (default: 1 for direct children).
+        show_indirect: when depth > 1, also show indirect (package-level) imports as normal edges.
     """
     modules = _find_modules_up_to_depth(grimp_graph, module_name, depth)
     concentrate = not (show_import_totals or show_cycle_breakers)
@@ -181,6 +183,7 @@ def build_dot_graph(
             show_import_totals=show_import_totals,
             cycle_breakers=cycle_breakers,
             depth=depth,
+            show_indirect=show_indirect,
         )
         if edge:
             dot.add_edge(edge)
@@ -452,6 +455,7 @@ def _build_dot_edge(
     show_import_totals: bool,
     cycle_breakers: set[tuple[str, str]] | None,
     depth: int = 1,
+    show_indirect: bool = False,
 ) -> Edge | None:
     if depth > 1:
         # Skip pairs where one is an ancestor of the other in the module hierarchy,
@@ -466,15 +470,16 @@ def _build_dot_edge(
             importer=downstream, imported=upstream, as_packages=False
         )
         if not direct_exists:
+            if not show_indirect:
+                return None
             # No direct import — check for a package-level import (a descendant of
-            # downstream imports upstream or one of its descendants).  Show as a
-            # dotted edge so the user can see the indirect relationship.
+            # downstream imports upstream or one of its descendants).
             package_exists = grimp_graph.direct_import_exists(
                 importer=downstream, imported=upstream, as_packages=True
             )
             if not package_exists:
                 return None
-            return Edge(source=downstream, destination=upstream, indirect=True)
+            return Edge(source=downstream, destination=upstream)
     else:
         if not grimp_graph.direct_import_exists(
             importer=downstream, imported=upstream, as_packages=True

@@ -68,6 +68,16 @@
                         </div>
                         <div class="toggle-help">Number of submodule levels to include in the graph (1 = direct children only).</div>
                     </div>
+                    <div class="toggle-item">
+                        <div class="toggle-row">
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="toggle-indirect" onchange="onSettingsChange()">
+                                <span class="toggle-slider"></span>
+                            </label>
+                            <label class="toggle-label" for="toggle-indirect">Indirect imports</label>
+                        </div>
+                        <div class="toggle-help">When depth &gt; 1, also show indirect (package-level) imports between modules.</div>
+                    </div>
                 </div>
             </div>
         </div>
