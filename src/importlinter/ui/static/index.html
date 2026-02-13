@@ -68,6 +68,16 @@
                         </div>
                         <div class="toggle-help">Number of submodule levels to include in the graph (1 = direct children only).</div>
                     </div>
+                    <div class="toggle-item">
+                        <div class="toggle-row">
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="toggle-hide-isolated" onchange="onSettingsChange()">
+                                <span class="toggle-slider"></span>
+                            </label>
+                            <label class="toggle-label" for="toggle-hide-isolated">Hide isolated</label>
+                        </div>
+                        <div class="toggle-help">Remove nodes that have no incoming or outgoing edges.</div>
+                    </div>
                 </div>
             </div>
         </div>

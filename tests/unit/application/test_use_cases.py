@@ -869,8 +869,30 @@ class TestBuildDotGraph:
             Edge("mypackage.foo.blue.alpha", "mypackage.foo.green.gamma"),
             Edge("mypackage.foo.blue.beta", "mypackage.foo.green.gamma"),
         }
-        # depth=2 renders clusters for sibling groups (2+ nodes with same parent)
+        # depth=2 renders nested clusters (no root box); .green.gamma standalone
         rendered = dot.render()
-        assert "subgraph cluster_mypackage_foo" in rendered
-        assert "subgraph cluster_mypackage_foo_blue" in rendered
+        assert "subgraph cluster_mypackage_foo {" not in rendered  # no root box
+        assert "subgraph cluster_mypackage_foo_blue " in rendered
         assert '".green.gamma"' in rendered  # standalone (single sibling under .green)
+
+    def test_hide_isolated_removes_nodes_without_edges(self):
+        """When hide_isolated=True, nodes with no incoming or outgoing edges are removed."""
+        graph = ImportGraph()
+        graph.add_module(SOME_ROOT_PACKAGE)
+        graph.add_module(SOME_MODULE)
+        for child in ("blue", "green", "yellow"):
+            graph.add_module(f"{SOME_MODULE}.{child}")
+        graph.add_import(importer=f"{SOME_MODULE}.blue", imported=f"{SOME_MODULE}.green")
+
+        dot = build_dot_graph(
+            graph,
+            SOME_MODULE,
+            show_import_totals=False,
+            show_cycle_breakers=False,
+            depth=1,
+            hide_isolated=True,
+        )
+
+        # .yellow has no edges, so it should be removed
+        assert dot.nodes == {"mypackage.foo.blue", "mypackage.foo.green"}
+        assert dot.edges == {Edge("mypackage.foo.blue", "mypackage.foo.green")}

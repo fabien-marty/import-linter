@@ -74,25 +74,19 @@ class DotGraph:
             for node in children
         }
         lines: list[str] = []
-        # Render clusters: start from base, or from root-level clusters when base has none
-        if self.title in clustered_parents:
-            self._render_cluster(
-                self.title,
-                indent,
-                indent,
-                clustered_parents,
-                lines,
-            )
-        else:
-            for child in sorted(parent_to_children.get(self.title, set())):
-                if child in clustered_parents:
-                    self._render_cluster(
-                        child,
-                        indent,
-                        indent,
-                        clustered_parents,
-                        lines,
-                    )
+        # Render clusters: never create a root box; output base's children directly
+        for child in sorted(parent_to_children.get(self.title, set())):
+            if child in clustered_parents:
+                self._render_cluster(
+                    child,
+                    indent,
+                    indent,
+                    clustered_parents,
+                    lines,
+                )
+            elif self.title in clustered_parents:
+                # Base has a cluster but we skip the root box; output child as top-level node
+                lines.append(f'{indent}"{self.render_module(child, self.title)}"')
         for node in sorted(standalone_nodes):
             lines.append(f'{indent}"{self.render_module(node, self.title)}"')
         return lines

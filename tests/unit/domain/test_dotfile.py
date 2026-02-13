@@ -21,11 +21,10 @@ class TestDotGraph:
 
         rendered = dot.render()
 
-        # .bar and .baz share parent -> cluster (depth=1, clustering applies)
-        assert "subgraph cluster_mypackage_foo" in rendered
+        # No root box; .bar and .baz at top level
+        assert "subgraph cluster_mypackage_foo" not in rendered
         assert '".bar"' in rendered
         assert '".baz"' in rendered
-        assert ".bar" in rendered and ".baz" in rendered
 
     def test_render_with_depth_2(self):
         dot = DotGraph(title="mypackage.foo", depth=2)
@@ -36,13 +35,11 @@ class TestDotGraph:
 
         rendered = dot.render()
 
-        # depth=2: .blue and .green share parent -> cluster; .blue.alpha is standalone (single sibling)
-        assert "subgraph cluster_mypackage_foo" in rendered
-        assert 'label=""' in rendered
+        # No root box; .blue, .green, .blue.alpha at top level
+        assert "subgraph cluster_mypackage_foo" not in rendered
         assert '".blue"' in rendered
         assert '".green"' in rendered
         assert '".blue.alpha"' in rendered
-        assert ".blue.alpha" in rendered and ".green" in rendered
 
     def test_render_with_depth_2_and_clusters(self):
         """Nested clusters: .blue/.green in outer cluster, .blue.alpha/.blue.beta in inner cluster."""
