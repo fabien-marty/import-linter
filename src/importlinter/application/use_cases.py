@@ -149,6 +149,7 @@ def build_dot_graph(
     show_import_totals: bool,
     show_cycle_breakers: bool,
     depth: int = 1,
+    hide_unlinked: bool = False,
 ) -> DotGraph:
     """
     Build a DotGraph visualizing the architecture of the supplied module.
@@ -162,6 +163,8 @@ def build_dot_graph(
         show_cycle_breakers: whether to emphasize cycle-breaker edges.
             See https://grimp.readthedocs.io/en/stable/usage.html#ImportGraph.nominate_cycle_breakers
         depth: the depth of submodules to include in the graph (default: 1 for direct children).
+        hide_unlinked: if True, remove nodes that have no edges (i.e. no imports to or from
+            any other node in the graph).
     """
     modules = _find_modules_up_to_depth(grimp_graph, module_name, depth)
     concentrate = not (show_import_totals or show_cycle_breakers)
@@ -184,6 +187,15 @@ def build_dot_graph(
         )
         if edge:
             dot.add_edge(edge)
+
+    if hide_unlinked:
+        linked_nodes: set[str] = set()
+        for edge in dot.edges:
+            linked_nodes.add(edge.source)
+            linked_nodes.add(edge.destination)
+        unlinked = dot.nodes - linked_nodes
+        for node in unlinked:
+            dot.nodes.discard(node)
 
     return dot
 

@@ -15,6 +15,7 @@ let currentPackages = [];
 let showImportTotals = false;
 let showCycleBreakers = false;
 let depth = 1;
+let hideUnlinked = false;
 
 // Client-side cache for rendered graphs
 const graphCache = new Map();
@@ -35,6 +36,9 @@ function buildApiUrl(moduleName) {
     if (depth !== 1) {
         params.push(`depth=${depth}`);
     }
+    if (hideUnlinked) {
+        params.push('hide_unlinked=true');
+    }
     if (params.length) {
         url += '?' + params.join('&');
     }
@@ -42,13 +46,14 @@ function buildApiUrl(moduleName) {
 }
 
 function buildCacheKey(moduleName) {
-    return `${moduleName}|${showImportTotals}|${showCycleBreakers}|${depth}`;
+    return `${moduleName}|${showImportTotals}|${showCycleBreakers}|${depth}|${hideUnlinked}`;
 }
 
 function onSettingsChange() {
     showImportTotals = document.getElementById('toggle-import-totals').checked;
     showCycleBreakers = document.getElementById('toggle-cycle-breakers').checked;
     depth = parseInt(document.getElementById('depth-input').value, 10) || 1;
+    hideUnlinked = document.getElementById('toggle-hide-unlinked').checked;
     loadGraph(currentModule, false);
 }
 

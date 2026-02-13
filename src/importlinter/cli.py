@@ -112,8 +112,14 @@ def explore(module_name: str) -> None:
     default=1,
     help="Depth of submodules to include in the graph (default: 1 for direct children).",
 )
+@click.option(
+    "--hide-unlinked",
+    is_flag=True,
+    help="Remove nodes that have no imports to or from any other node.",
+)
 def drawgraph(
-    module_name: str, show_import_totals: bool, show_cycle_breakers: bool, depth: int
+    module_name: str, show_import_totals: bool, show_cycle_breakers: bool, depth: int,
+    hide_unlinked: bool,
 ) -> None:
     """Output a DOT format graph of a module's dependencies to stdout.
 
@@ -136,7 +142,8 @@ def drawgraph(
 
     grimp_graph = grimp.build_graph(top_level_package)
     dot = use_cases.build_dot_graph(
-        grimp_graph, module_name, show_import_totals, show_cycle_breakers, depth=depth
+        grimp_graph, module_name, show_import_totals, show_cycle_breakers, depth=depth,
+        hide_unlinked=hide_unlinked,
     )
     click.echo(dot.render(), nl=False)
 

@@ -68,6 +68,16 @@
                         </div>
                         <div class="toggle-help">Number of submodule levels to include in the graph (1 = direct children only).</div>
                     </div>
+                    <div class="toggle-item">
+                        <div class="toggle-row">
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="toggle-hide-unlinked" onchange="onSettingsChange()">
+                                <span class="toggle-slider"></span>
+                            </label>
+                            <label class="toggle-label" for="toggle-hide-unlinked">Hide unlinked</label>
+                        </div>
+                        <div class="toggle-help">Hide modules that have no imports to or from any other module in the graph.</div>
+                    </div>
                 </div>
             </div>
         </div>
